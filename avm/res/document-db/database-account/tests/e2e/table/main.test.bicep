@@ -1,7 +1,7 @@
 targetScope = 'subscription'
 
-metadata name = 'Plain'
-metadata description = 'This instance deploys the module without a Database.'
+metadata name = 'API for Table'
+metadata description = 'This instance deploys the module for an Azure Cosmos DB for Table account with two example tables.'
 
 // ========== //
 // Parameters //
@@ -12,19 +12,22 @@ metadata description = 'This instance deploys the module without a Database.'
 param resourceGroupName string = 'dep-${namePrefix}-documentdb.databaseaccounts-${serviceShort}-rg'
 
 @description('Optional. A short identifier for the kind of deployment. Should be kept short to not run into resource-name length-constraints.')
-param serviceShort string = 'dddapln'
+param serviceShort string = 'dddatbl'
 
-@description('Optional. A token to inject into the name of each resource.')
+@description('Optional. A token to inject into the name of each resource. This value can be automatically injected by the CI.')
 param namePrefix string = '#_namePrefix_#'
 
 // The default pipeline is selecting random regions which don't have capacity for Azure Cosmos DB or support all Azure Cosmos DB features when creating new accounts.
 #disable-next-line no-hardcoded-location
 var enforcedLocation = 'eastus2'
 
-// ============== //
+// ============ //
+// Dependencies //
+// ============ //
+
 // General resources
-// ============== //
-resource resourceGroup 'Microsoft.Resources/resourceGroups@2022-09-01' = {
+// =================
+resource resourceGroup 'Microsoft.Resources/resourceGroups@2021-04-01' = {
   name: resourceGroupName
   location: enforcedLocation
 }
@@ -39,23 +42,19 @@ module testDeployment '../../../main.bicep' = [
     scope: resourceGroup
     name: '${uniqueString(deployment().name, enforcedLocation)}-test-${serviceShort}-${iteration}'
     params: {
-      name: '${namePrefix}${serviceShort}001'
       location: enforcedLocation
-      disableLocalAuth: true
-      backupPolicyType: 'Continuous'
-      disableKeyBasedMetadataWriteAccess: true
-      defaultConsistencyLevel: 'ConsistentPrefix'
-      backupPolicyContinuousTier: 'Continuous7Days'
-      locations: [
-        {
-          failoverPriority: 0
-          isZoneRedundant: false
-          locationName: enforcedLocation
-        }
+      name: '${namePrefix}${serviceShort}001'
+      capabilitiesToAdd: [
+        'EnableTable'
       ]
-      sqlDatabases: [
+      tables: [
         {
-          name: 'no-containers-specified'
+          name: 'tbl-dddatableminprov'
+          throughput: 400
+        }
+        {
+          name: 'tbl-dddatableminauto'
+          maxThroughput: 1000
         }
       ]
     }
